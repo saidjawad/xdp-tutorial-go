@@ -1,0 +1,266 @@
+#+ SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+
+# -*- fill-column: 76; -*-
+#+TITLE: Tutorial: Different ways of Loading XDP BPF programs
+#+OPTIONS: ^:nil
+
+This README and the example code in this tutorial is based on 
+the comprehensive [[https://github.com/xdp-project][XDP-tutorial]] series by [[https://github.com/xdp-project][XDP-Project]] folks. 
+They have been adapted to work with Golang. 
+
+
+* setup dependencies
+
+There are a number of setup dependencies, that are needed in order to
+compile the source code in this git repository. Please go read and complete
+the [[https://github.com/xdp-project/xdp-tutorial/blob/master/setup_dependencies.org]] guide if you haven't already.
+
+Then return here, and see if the next step compiles.
+
+* Compiling example code
+
+If you completed the setup dependencies guide, then you should be able to
+simply run the =make= command, in this directory. (The [[file:Makefile][Makefile]] and
+[[file:../configure][configure]] script will try to be nice and detect if you didn't complete the
+setup steps).
+
+** Simple XDP code
+
+The very simple XDP code used in this step is located in
+[[file:xdp_pass_kern.c]], and displayed below:
+
+#+begin_src C
+SEC("xdp")
+int  xdp_prog_simple(struct xdp_md *ctx)
+{
+        return XDP_PASS;
+}
+#+end_src
+
+** Compiling process
+
+The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
+stores it in an ELF object file, named =xdp_pass_kern_bpfel.o=. You can invoke 
+the LLVM+clang compiler directly, or like in our case, rely on bpf2go utility, which also
+uses the LLVM+clang in the backend. We use [[https://pkg.go.dev/github.com/cilium/ebpf/cmd/bpf2go][bpf2go] utility since the LLVM+clang
+is already covered in the original xdp-tutorial. 
+
+To use bpf2go utility, we added this special comment in the [[file:main.go]]:
+#+begin_src Go
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go xdp_pass_kern xdp_pass_kern.c
+#+end_src
+
+The bpf2go utility by default generates two BPF ELF object file and the required Go files to 
+interfact with them. These Go files are used in our [[file:main.go]]. In this case, the
+BPF ELF object files are: 
+
+ - xdp_pass_kern_bpfel.o 
+ - xdp_pass_kern_bpfeb.o
+
+The "el" and "eb" are for little endian or big endian machines.
+
+** Looking into the BPF-ELF object
+
+You can inspect the contents of the =xdp_pass_kern_bpfel.o= file with different
+tools like =readelf= or =llvm-objdump=. As the Makefile enables the debug
+option =-g= (LLVM version >= 4.0), the llvm-objdump tool can annotate
+assembler output with the original C code:
+
+Run: =llvm-objdump -S xdp_pass_kern_bpfel.o=
+
+alternatively you can:
+
+Run: =llvm-objdump -S xdp_pass_kern_bpfeb.o=
+
+#+begin_example asm
+xdp_pass_kern_bpfeb.o:  file format elf64-bpf
+
+Disassembly of section xdp:
+
+0000000000000000 <xdp_prog_simple>:
+;       return XDP_PASS;
+       0:       b7 00 00 00 00 00 00 02 r0 = 0x2
+       1:       95 00 00 00 00 00 00 00 exit
+#+end_example
+
+If you don't want to see the raw BPF instructions add: =--no-show-raw-insn=.
+The define/enum XDP_PASS has a value of 2, as can be seen in the dump. The
+section name "xdp" was defined by =SEC("xdp")=, and the =xdp_prog_simple:=
+is our C-function name.
+
+* Loading and the XDP hook
+
+As you should understand by now, the BPF byte code is stored in an ELF file.
+To load this into the kernel, user space needs an ELF loader to read the
+file and pass it into the kernel in the right format.
+
+The *libbpf* library provides both an ELF loader and several BPF helper
+functions. It understands BPF Type Format (BTF) and implements [[https://nakryiko.com/posts/bpf-core-reference-guide/][CO-RE]]
+relocation as part of ELF loading, which is where our libelf-devel
+dependency comes from. However, in order to use the full features of this library, you 
+have to write your user space programs in C. In this tutorial series we aim to use Golang 
+to interact with BPF programs. This is where the ebpf-go library comes to
+play. 
+
+The Go code in [[file:main.go]] which gets compiled to the program
+=xdp_pass_user=) shows how to write a BPF loader specifically for our
+=xdp_pass_kern_bpfel.o= ELF file. This loader attaches the program in the ELF file
+to an XDP hook on a network device.
+
+
+** Loading using xdp_pass_user
+
+To load the program using our own loader, issue this command:
+
+#+begin_example sh
+ $ sudo ./xdp_pass_user --dev lo
+ Success: Loading XDP prog name:xdp_prog_simple(id:732) on device:lo(ifindex:1)
+#+end_example
+
+Indeed, our simple program loader allows users to attach their XDP programs using two different
+underlying libraries:  
+ - [[https://pkg.go.dev/github.com/cilium/ebpf][ebpf-go]] (default)
+ - [[https://pkg.go.dev/github.com/vishvananda/netlink][Netlink]
+
+*** ebpf-go
+
+This package is written by creaters of [[https://cilium.io/][Cilium]] and allows developers to 
+work with a wide range of eBPF programs. We are primarily interested in XDP programs. Our loader
+primarly relies on this package to load XDP programs.  
+
+However, to attach XDP programs, this package relies on [[https://lore.kernel.org/bpf/20200228223948.360936-2-andriin@fb.com/][bpf_link]] feature of the kernel,
+which was merged in Kernel version 5.7. This means that if you want to load the program in older 
+kernels, you have to use other methods. This is where Netlink comes to play. 
+
+To load and attach the program using ebpf-go library, run:
+
+#+begin_example sh
+ $ sudo ./xdp_pass_user --dev lo
+ Success: Loading XDP prog name:xdp_prog_simple(id:732) on device:lo(ifindex:1)
+#+end_example
+
+or to be more explicit: 
+
+#+begin_example sh
+ $ sudo ./xdp_pass_user --dev lo --attachlib ebpfgo
+ Success: Loading XDP prog name:xdp_prog_simple(id:732) on device:lo(ifindex:1)
+#+end_example
+
+*** Netlink
+
+This package offers developers the capability to use Linux Netlink interface using Go. The main 
+purpose of Netlink interface in Linux allows to allow user space programs to communicate with kernel. 
+Indeed, the **libbpf** library also uses Netlink to work with various eBPF programs. 
+In this tutorial, we primarily focus on the Attach/Detaching of XDP programs. 
+The full set of features of Netlink interface is beyond the scope of this tutorial. 
+
+Attaching XDP programs using Netlink library. 
+#+begin_example sh
+$ sudo ./xdp_pass_user --dev lo --attachlib netlink
+Success: Loading XDP prog name:xdp_prog_simple(id:745) on device:lo(ifindex:1)
+#+end_example
+
+
+You can list XDP programs  on the device using different commands, and verify
+that the program ID is the same:
+- =ip link list dev lo=
+- =bpftool net list dev lo=
+
+** Unloading using xdp_pass_user
+
+To unload the program using our own loader, use this command:
+
+#+begin_example sh
+$ sudo ./xdp_pass_user --dev lo --unload
+Success: Detaching all programs from the interface
+#+end_example
+
+It does seem overkill to write a Go program to simply load and attach a
+specific BPF-program. However, we still include this in the tutorial
+since it will help you integrate BPF into other Open Source projects.
+
+There are some alternatives to writing a new loader:
+
+ - The standard iproute2 tool
+ - The bpftool 
+
+** Loading via iproute2 ip
+
+Iproute2 provides libbpf based BPF loading capability that can be used with
+the standard =ip= tool; so in this case you can actually load our ELF-file
+=xdp_pass_kern_bpfel.o= (where we named our ELF section "xdp") like this:
+
+#+begin_example sh
+$ sudo ip link set dev lo xdpgeneric obj xdp_pass_kern_bpfel.o sec xdp
+#+end_example
+
+Listing the device via =ip link show= also shows the XDP info:
+
+#+begin_example sh
+$ sudo ip link show dev lo
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    prog/xdp id 408 name xdp_prog_simple tag 3b185187f1855c4c jited
+#+end_example
+
+Should you run it without =sudo=, you would have less information:
+
+#+begin_example sh
+$ ip link show dev lo
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 xdpgeneric qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    prog/xdp id 408
+#+end_example
+
+Removing the XDP program again from the device:
+
+#+begin_example
+$ sudo ip link set dev lo xdpgeneric off
+#+end_example
+
+
+** Loading using bpftool
+
+bpftool is a versatile utility that allows to work with eBPF programs. Under the hood, it also uses
+libbpf. 
+
+For attaching our toy example with bpftool, first, we need to load the program into the kernel:
+
+#+begin_example
+$ sudo mount -t bpf none /sys/fs/bpf
+$ sudo bpftool prog load xdp_pass_kern_bpfel.o /sys/fs/bpf/xdp_pass
+#+end_example
+
+Verify that program is loaded: 
+
+#+begin_example
+$ sudo bpftool prog list
+...
+54: xdp  name xdp_prog_simple  tag 3b185187f1855c4c  gpl
+        loaded_at 2024-03-18T17:59:12-0400  uid 0
+        xlated 16B  jited 27B  memlock 4096B
+        btf_id 173
+#+end_example
+
+Now, we attach the loaded program using its name to the "loopback" interface:
+#+begin_example
+$ sudo bpftool net attach xdp name xdp_prog_simple dev lo
+#+end_example
+
+Verify the program is attached: 
+
+#+begin_example
+$ sudo bpftool net list
+xdp:
+lo(1) generic id 54
+#+end_example
+
+To detach the program we perform these steps but in reverse, i.e., first detach, then unload. 
+
+#+begin_example
+$ sudo bpftool net detach xdp dev lo name xdp_prog_simple 
+$ sudo rm /sys/fs/bpf/xdp_pass
+#+end_example
+
+Note that for unloading program through this method, it is enough to delete the corresponding file 
+in bpf file system at /sys/fs/bpf. In this case, the full path is /sys/fs/bpf/xdp_pass.  

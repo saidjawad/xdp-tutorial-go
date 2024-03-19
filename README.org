@@ -1,0 +1,22 @@
+#+ SPDX-FileCopyrightText: ©  2019 Jesper Dangaard Brouer <https://github.com/netoptimizer> and XDP-Project contrinbutors 
+#+ SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+
+#+TITLE: XDP Tutorial in Go
+
+This repository contains my attempt to use Golang for implementing the user 
+space programs from the [[https://github.com/xdp-project/xdp-tutorial][XDP-tutorial]].
+
+The plan is to follow the original structure and content. Hence, I will 
+reuse their eBPF programs, and try to replicate the behavior of their user space
+programs. Naturally, I will have to adapt some of their build instructions. 
+
+* Setting up dependencies
+
+If you follow the [[https://github.com/xdp-project/xdp-tutorial/blob/master/setup_dependencies.org][Setup Dependencies]] from their tutorial, 
+you will ba able to build and run the code in this repository without any problems.
+One notable difference is that we don't have any dependencies on *libxdp*. 
+
+* Compiling the code
+
+After setting up dependencies, you can  =make= command. 
+

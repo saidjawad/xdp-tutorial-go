@@ -7,7 +7,7 @@
 
 This README and the example code in this tutorial is based on 
 the comprehensive [[https://github.com/xdp-project][XDP-tutorial]] series by [[https://github.com/xdp-project][XDP-Project]] folks. 
-They have been adapted to work with Golang. 
+The user space program is written in Go and the README is adapated accordingly.
 
 
 * Seting up dependencies

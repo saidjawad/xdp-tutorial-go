@@ -121,7 +121,7 @@ To load the program using our own loader, issue this command:
 Indeed, our simple program loader allows users to attach their XDP programs using two different
 underlying libraries:  
  - [[https://pkg.go.dev/github.com/cilium/ebpf][ebpf-go]] (default)
- - [[https://pkg.go.dev/github.com/vishvananda/netlink][Netlink]
+ - [[https://pkg.go.dev/github.com/vishvananda/netlink][Netlink]]
 
 *** ebpf-go
 

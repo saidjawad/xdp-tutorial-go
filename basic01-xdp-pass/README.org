@@ -1,4 +1,5 @@
-#+ SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+# -*- SPDX-FileCopyrightText: ©  2019 Jesper Dangaard Brouer <https://github.com/netoptimizer> and XDP-Project contrinbutors -*-
+# -*- SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause) -*-
 
 # -*- fill-column: 76; -*-
 #+TITLE: Tutorial: Different ways of Loading XDP BPF programs
@@ -9,11 +10,11 @@ the comprehensive [[https://github.com/xdp-project][XDP-tutorial]] series by [[h
 They have been adapted to work with Golang. 
 
 
-* setup dependencies
+* Seting up dependencies
 
 There are a number of setup dependencies, that are needed in order to
 compile the source code in this git repository. Please go read and complete
-the [[https://github.com/xdp-project/xdp-tutorial/blob/master/setup_dependencies.org]] guide if you haven't already.
+the [[https://github.com/xdp-project/xdp-tutorial/blob/master/setup_dependencies.org][Setup Dependencies]] guide if you haven't already.
 
 Then return here, and see if the next step compiles.
 
@@ -42,7 +43,7 @@ int  xdp_prog_simple(struct xdp_md *ctx)
 The LLVM+clang compiler turns this restricted-C code into BPF-byte-code and
 stores it in an ELF object file, named =xdp_pass_kern_bpfel.o=. You can invoke 
 the LLVM+clang compiler directly, or like in our case, rely on bpf2go utility, which also
-uses the LLVM+clang in the backend. We use [[https://pkg.go.dev/github.com/cilium/ebpf/cmd/bpf2go][bpf2go] utility since the LLVM+clang
+uses the LLVM+clang in the backend. We use [[https://pkg.go.dev/github.com/cilium/ebpf/cmd/bpf2go][bpf2go]] utility since the LLVM+clang
 is already covered in the original xdp-tutorial. 
 
 To use bpf2go utility, we added this special comment in the [[file:main.go]]:

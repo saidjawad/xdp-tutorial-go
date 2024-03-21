@@ -60,6 +60,10 @@ BPF ELF object files are:
 
 The "el" and "eb" are for little endian or big endian machines.
 
+Note: in addition to the above-mentioned ELF byte code files, ebpf2go generates
+additional Go files with same names. These files contain structures that can help you 
+deal with your eBPF programs easier. We will take a deepr look in the next lesson.
+
 ** Looking into the BPF-ELF object
 
 You can inspect the contents of the =xdp_pass_kern_bpfel.o= file with different
@@ -125,9 +129,9 @@ underlying libraries:
 
 *** ebpf-go
 
-This package is written by creaters of [[https://cilium.io/][Cilium]] and allows developers to 
+This package is written by creators of [[https://cilium.io/][Cilium]] and allows developers to 
 work with a wide range of eBPF programs. We are primarily interested in XDP programs. Our loader
-primarly relies on this package to load XDP programs.  
+by default uses this package to load XDP programs.  
 
 However, to attach XDP programs, this package relies on [[https://lore.kernel.org/bpf/20200228223948.360936-2-andriin@fb.com/][bpf_link]] feature of the kernel,
 which was merged in Kernel version 5.7. This means that if you want to load the program in older 

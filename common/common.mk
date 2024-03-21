@@ -66,6 +66,6 @@ $(OBJECT_LIBBPF):
 	fi
 
 
-$(USER_TARGETS): %: main.go
+$(USER_TARGETS): %: %.go
 	BPF2GO_FLAGS="-target bpf -no-strip" BPF2GO_CFLAGS="$(BPF2GO_CFLAGS)" go generate
 	go build -o $@

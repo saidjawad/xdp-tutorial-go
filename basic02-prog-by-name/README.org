@@ -1,21 +1,15 @@
+# -*- SPDX-FileCopyrightText: ©  2019 Jesper Dangaard Brouer <https://github.com/netoptimizer> and XDP-Project contrinbutors -*-
+# -*- SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause) -*-
 # -*- fill-column: 76; -*-
 #+TITLE: Tutorial: Basic02 - loading a program by name
 #+OPTIONS: ^:nil
 
 In this lesson you will see that a BPF ELF file produced by LLVM can contain
-more than one XDP program, and how you can select which one to load using
-the *libxdp API*. Complete each of the assignments below to complete the
+more than one XDP program, and how you can select which one to load. Complete
+each of the assignments below to complete the
 lesson.
 
-* Table of Contents                                                     :TOC:
-- [[#using-libbpf][Using libxdp]]
-  - [[#basic-bpf_object-usage][Basic bpf_object usage]]
-  - [[#converting-a-bpf_object-to-bpf_program][Converting a bpf_object to bpf_program]]
-  - [[#hardware-offloading][Hardware offloading]]
-- [[#assignments][Assignments]]
-  - [[#assignment-1-setting-up-your-test-lab][Assignment 1: Setting up your test lab]]
-  - [[#assignment-2-add-xdp_abort-program][Assignment 2: Add xdp_abort program]]
-
+Like the previous lesson, this lesson is based on [[https://github.com/xdp-project][XDP-tutorial]] series by [[https://github.com/xdp-project][XDP-Project]]. 
 * Using ebpf-go
 
 There are several Go libraries to work with eBPF. We start with ebpf-go as

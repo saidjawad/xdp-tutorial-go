@@ -100,24 +100,6 @@ func run() error {
 	return nil
 }
 
-// Loads all eBPF programs into the kernel, returns the pointer to the eBPF program specified by its name
-func loadAllPrograms(progName string) (io.Closer, *ebpf.Program, error) {
-	var obj xdp_kernObjects
-	var closer io.Closer
-	if err := loadXdp_kernObjects(&obj, nil); err != nil {
-		return nil, nil, fmt.Errorf("error loading programs %v", err)
-	}
-	closer = &obj
-	switch strings.ToLower(progName) {
-	case "xdp_pass_func":
-		return closer, obj.xdp_kernPrograms.XdpPassFunc, nil
-	case "xdp_drop_func":
-		return closer, obj.xdp_kernPrograms.XdpDropFunc, nil
-	}
-	obj.Close()
-	return nil, nil, fmt.Errorf("could not find the program: %v", progName)
-}
-
 // Loads an eBPF program into the kernel from a CollectionSpecs object using its name.
 //
 // The programs and maps have to be defined in a struct.
@@ -160,6 +142,24 @@ func loadProgramByName(collectionSpecs *ebpf.CollectionSpec, progName string) (*
 	program := collection.Programs[progName]
 	return collection, program, err
 
+}
+
+// Loads all eBPF programs into the kernel, returns the pointer to the eBPF program specified by its name
+func loadAllPrograms(progName string) (io.Closer, *ebpf.Program, error) {
+	var obj xdp_kernObjects
+	var closer io.Closer
+	if err := loadXdp_kernObjects(&obj, nil); err != nil {
+		return nil, nil, fmt.Errorf("error loading programs %v", err)
+	}
+	closer = &obj
+	switch strings.ToLower(progName) {
+	case "xdp_pass_func":
+		return closer, obj.xdp_kernPrograms.XdpPassFunc, nil
+	case "xdp_drop_func":
+		return closer, obj.xdp_kernPrograms.XdpDropFunc, nil
+	}
+	obj.Close()
+	return nil, nil, fmt.Errorf("could not find the program: %v", progName)
 }
 
 // detaches an XDP program from an interface using Netlink library.
